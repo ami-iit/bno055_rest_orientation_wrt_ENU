@@ -1,6 +1,6 @@
 % Dopo aver caricato in workspace la struttura sub9_trial2_task4:
 % >> load('sub9_trial2_task4.mat')
-save_imu_full_csv(robot_logger_device, 'out_csv', 0.016, 3:12);
+save_imu_full_csv(robot_logger_device, 'ExtractedNodeRawDataCSV', 0.016, 3:12);
 
 
 
@@ -135,8 +135,22 @@ for n = node_range
     T.mag_y_uT    = M(:,2);
     T.mag_z_uT    = M(:,3);
 
-    % --- Salvataggio ---
-    outFile = fullfile(outdir, sprintf('%s.csv', nodeName));
+    % --- Salvataggio con gestione suffissi se file esiste ---
+    baseOutFile = fullfile(outdir, sprintf('%s.csv', nodeName));
+    outFile = baseOutFile;
+    
+    % Se il file esiste già, aggiungi suffisso progressivo
+    if exist(outFile, 'file')
+        suffix = 1;
+        while true
+            outFile = fullfile(outdir, sprintf('%s_%d.csv', nodeName, suffix));
+            if ~exist(outFile, 'file')
+                break;
+            end
+            suffix = suffix + 1;
+        end
+    end
+    
     try
         writetable(T, outFile);
         fprintf('Salvato: %s (%d campioni)\n', outFile, nMin);

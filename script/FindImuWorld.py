@@ -319,33 +319,32 @@ def group_nodes_by_prefix(mean_rotations):
 
 def plot_combined_filtered_nodes(mean_rotations, output_dir):
     """
-    Crea un grafico unico con node10 a partire da _4 e tutti i node3.
+    Crea un grafico unico con tutti i nodi dal 3 al 12 (con o senza suffisso).
     
     Args:
         mean_rotations: dictionary con {node_name: mean_rotation_matrix}
         output_dir: directory dove salvare il grafico
     """
-    # Filtra i nodi: node10_4, node10_5, ... e tutti i node3
+    # Filtra i nodi: node3, node4, ..., node12 (con eventuali suffissi)
     filtered_rotations = {}
     
     for node_name, R_mean in mean_rotations.items():
-        # Controlla se è un node3
-        if node_name.startswith('node3'):
-            filtered_rotations[node_name] = R_mean
-        # Controlla se è un node10 >= _4
-        elif node_name.startswith('node10_'):
-            # Estrai il numero dopo node10_
+        # Estrai il numero del nodo dal nome
+        # Formato: nodeN o nodeN_M
+        if node_name.startswith('node'):
             try:
-                parts = node_name.split('_')
-                if len(parts) >= 2:
-                    num = int(parts[1])
-                    if num >= 4:
-                        filtered_rotations[node_name] = R_mean
+                # Rimuovi 'node' e prendi la parte numerica prima di eventuale '_'
+                parts = node_name[4:].split('_')  # Rimuove 'node' e splitta
+                node_num = int(parts[0])
+                
+                # Considera solo nodi da 3 a 12
+                if 3 <= node_num <= 12:
+                    filtered_rotations[node_name] = R_mean
             except (ValueError, IndexError):
                 continue
     
     if not filtered_rotations:
-        print("\n⚠️  Nessun nodo trovato con i criteri specificati (node10_4+, node3)")
+        print("\n⚠️  Nessun nodo trovato nell'intervallo node3-node12")
         return
     
     print(f"\n🎨 Creazione plot 3D combinato con {len(filtered_rotations)} nodi:")
@@ -362,6 +361,17 @@ def plot_combined_filtered_nodes(mean_rotations, output_dir):
     
     # Colori per i diversi nodi
     colors_nodes = plt.cm.Set1(np.linspace(0, 1, max(len(filtered_rotations), 3)))
+    
+    # Disegna il frame di riferimento ENU (East-North-Up) nell'origine
+    ref_length = 1.2
+    ax.plot([0, ref_length], [0, 0], [0, 0], 'r-', linewidth=4, label='ENU - X (East)', alpha=0.8)
+    ax.plot([0, 0], [0, ref_length], [0, 0], 'g-', linewidth=4, label='ENU - Y (North)', alpha=0.8)
+    ax.plot([0, 0], [0, 0], [0, ref_length], 'b-', linewidth=4, label='ENU - Z (Up)', alpha=0.8)
+    
+    # Aggiungi etichette al frame di riferimento
+    ax.text(ref_length, 0, 0, 'X (E)', fontsize=11, color='red', weight='bold')
+    ax.text(0, ref_length, 0, 'Y (N)', fontsize=11, color='green', weight='bold')
+    ax.text(0, 0, ref_length, 'Z (U)', fontsize=11, color='blue', weight='bold')
     
     # Per ogni nodo, plotta gli assi X, Y, Z
     for idx, (node_name, R_mean) in enumerate(sorted(filtered_rotations.items())):
@@ -405,17 +415,17 @@ def plot_combined_filtered_nodes(mean_rotations, output_dir):
     ax.set_xlim([-1.5, 1.5])
     ax.set_ylim([-1.5, 1.5])
     ax.set_zlim([-1.5, 1.5])
-    ax.set_xlabel('X', fontsize=12, weight='bold')
-    ax.set_ylabel('Y', fontsize=12, weight='bold')
-    ax.set_zlabel('Z', fontsize=12, weight='bold')
-    ax.set_title('Heading medio - NODE10 (≥4) e NODE3 (primi 100 campioni)\nFrame 3D sovrapposti', 
+    ax.set_xlabel('X (East)', fontsize=12, weight='bold')
+    ax.set_ylabel('Y (North)', fontsize=12, weight='bold')
+    ax.set_zlabel('Z (Up)', fontsize=12, weight='bold')
+    ax.set_title('Heading medio - NODE 3-12 (primi 100 campioni)\nFrame 3D sovrapposti - Sistema ENU (BNO055 standard config)', 
                  fontsize=14, weight='bold')
     
     # Aggiungi griglia
     ax.grid(True, alpha=0.3)
     
-    # Legenda
-    ax.legend(loc='upper left', fontsize=9, framealpha=0.9)
+    # Legenda (divisa in due colonne per gestire molti elementi)
+    ax.legend(loc='upper left', fontsize=8, framealpha=0.9, ncol=2)
     
     # Imposta vista isometrica
     ax.view_init(elev=20, azim=45)
@@ -423,7 +433,7 @@ def plot_combined_filtered_nodes(mean_rotations, output_dir):
     plt.tight_layout()
     
     # Salva il grafico
-    save_path = os.path.join(output_dir, "mean_headings_3d_combined_node10_4plus_node3.png")
+    save_path = os.path.join(output_dir, "mean_headings_3d_combined_node3_to_12.png")
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     print(f"   💾 Plot salvato: {save_path}")
     
